@@ -83,7 +83,7 @@ try {
   }
   if (!extracted) throw new Error(`7-Zip extraction failed — tried: ${failures.join(', ')}`)
 
-  const sourceDirectory = join(extractedDirectory, archiveFolder, 'samples')
+  const sourceDirectory = join(extractedDirectory, archiveFolder)
   await mkdir(outputDirectory, { recursive: true })
   for (const [name, source] of Object.entries(sampleSources)) {
     const sourceFile = join(sourceDirectory, source)
