@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { FaXmark } from 'react-icons/fa6'
+import { FaGithub, FaXmark } from 'react-icons/fa6'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { setTheme, setVolume, type Theme } from '../store/settingsSlice'
 import { useI18n, type AppLanguageSetting } from '../utils/i18n'
@@ -55,6 +55,7 @@ export default function Settings({ open, onClose }: { open: boolean; onClose: ()
         <div className="settings-credits">
           <span>{t('settings.creditsLabel')}</span>
           <a href="https://freepats.zenvoid.org/Percussion/acoustic-drum-kit.html" target="_blank" rel="noreferrer">{t('settings.soundsCredit')}</a>
+          <a className="settings-github-link" href="https://github.com/starxmaker/DrumsPWA" target="_blank" rel="noreferrer" aria-label={t('settings.github')} title={t('settings.github')}><FaGithub aria-hidden="true" /></a>
           <span>{t('settings.version', { version: __APP_VERSION__ })}</span>
         </div>
       </section>

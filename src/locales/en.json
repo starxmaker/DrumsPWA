@@ -27,6 +27,7 @@
   "settings.volume": "Volume",
   "settings.creditsLabel": "Credits",
   "settings.soundsCredit": "Sounds: MuldjordKit (CC BY 4.0)",
+  "settings.github": "View source on GitHub",
   "settings.version": "Version {version}",
   "language.label": "Language",
   "language.auto": "System",

@@ -2,6 +2,8 @@
 
 A private, installable drum simulator. Play an eight-piece acoustic drum kit with your fingers — every hit is rendered with hand-drawn SVG artwork and CC BY 4.0 FreePats *MuldjordKit* samples that run entirely in the browser; no audio leaves the device.
 
+The project is live at [https://starxmaker.github.io/DrumsPWA/](https://starxmaker.github.io/DrumsPWA/).
+
 ## Features
 
 - Eight-piece kit: kick, snare, hi-hat, two rack toms, floor tom, crash, and ride
