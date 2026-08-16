@@ -35,5 +35,6 @@
   "install.title": "Instalar Batería",
   "install.description": "Toca sin conexión desde tu pantalla de inicio",
   "install.button": "Instalar",
-  "rotate.message": "Gira el móvil a horizontal para tocar la batería"
+  "rotate.message": "Gira el móvil a horizontal para tocar la batería",
+  "sound.resume": "Toca para activar el sonido"
 }

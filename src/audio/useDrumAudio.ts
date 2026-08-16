@@ -36,6 +36,7 @@ function uniqueSampleFiles(): string[] {
  */
 export function useDrumAudio(volumePercent: number) {
   const [status, setStatus] = useState<DrumAudioStatus>(() => (audioContextConstructor() ? 'loading' : 'error'))
+  const [running, setRunning] = useState(false)
   const [loadedCount, setLoadedCount] = useState(0)
   const [usingFallback, setUsingFallback] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
@@ -61,6 +62,10 @@ export function useDrumAudio(volumePercent: number) {
     contextRef.current = context
     masterRef.current = master
     buffersRef.current = buffers
+    // The context starts suspended (no user gesture yet); `running` tracks it
+    // so the UI can ask for an explicit tap before the first drum hit.
+    const syncState = () => setRunning(context.state === 'running')
+    context.addEventListener('statechange', syncState)
 
     const loadSamples = async () => {
       for (const file of sampleFiles) {
@@ -86,6 +91,7 @@ export function useDrumAudio(volumePercent: number) {
 
     return () => {
       cancelled = true
+      context.removeEventListener('statechange', syncState)
       for (const voice of voicesRef.current) {
         try { voice.source.stop() } catch { /* Already stopped. */ }
       }
@@ -95,6 +101,18 @@ export function useDrumAudio(volumePercent: number) {
       masterRef.current = null
     }
   }, [retryCount, sampleFiles])
+
+  useEffect(() => {
+    // Mobile browsers suspend the context when backgrounded; re-check it when
+    // returning to the foreground so the resume prompt can come back.
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return
+      const context = contextRef.current
+      if (context) setRunning(context.state === 'running')
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [])
 
   useEffect(() => {
     volumeRef.current = volumePercent
@@ -175,6 +193,12 @@ export function useDrumAudio(volumePercent: number) {
     [],
   )
 
+  const resume = useCallback(() => {
+    const context = contextRef.current
+    if (!context) return
+    void context.resume().then(() => setRunning(context.state === 'running')).catch(() => undefined)
+  }, [])
+
   const retry = useCallback(() => {
     setStatus('loading')
     setLoadedCount(0)
@@ -182,5 +206,5 @@ export function useDrumAudio(volumePercent: number) {
     setRetryCount((count) => count + 1)
   }, [])
 
-  return { status, loadedCount, totalCount: sampleFiles.length, usingFallback, play, retry }
+  return { status, running, resume, loadedCount, totalCount: sampleFiles.length, usingFallback, play, retry }
 }

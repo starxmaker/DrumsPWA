@@ -35,5 +35,6 @@
   "install.title": "Install Drum Kit",
   "install.description": "Play offline from your home screen",
   "install.button": "Install",
-  "rotate.message": "Please rotate your phone to landscape to play the drums"
+  "rotate.message": "Please rotate your phone to landscape to play the drums",
+  "sound.resume": "Tap to enable sound"
 }

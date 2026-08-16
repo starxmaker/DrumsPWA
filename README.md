@@ -20,7 +20,7 @@ npm install
 npm run dev
 ```
 
-Run all quality checks with `npm run check`. Set `VITE_BASE_PATH=/` for root-hosted builds; the default deployment path is `/drums-pwa/`.
+Run all quality checks with `npm run check`. Set `VITE_BASE_PATH=/` for root-hosted builds; the default deployment path is `/DrumsPWA/`.
 
 Production builds download the pinned MuldjordKit archive from FreePats, verify its SHA-256 checksum, and extract only the nine required FLAC samples. See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for attribution.
 

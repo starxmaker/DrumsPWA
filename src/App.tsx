@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FaArrowsRotate, FaDrum, FaGear, FaMobileScreenButton } from 'react-icons/fa6'
+import { FaArrowsRotate, FaDrum, FaGear, FaMobileScreenButton, FaPlay } from 'react-icons/fa6'
 import { useDrumAudio } from './audio/useDrumAudio'
 import DrumKit from './components/DrumKit'
 import FullscreenToggle from './components/FullscreenToggle'
@@ -13,7 +13,7 @@ export default function App() {
   const theme = useAppSelector((state) => state.settings.theme)
   const volume = useAppSelector((state) => state.settings.volume)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const { status, loadedCount, totalCount, usingFallback, play, retry } = useDrumAudio(volume)
+  const { status, running, resume, loadedCount, totalCount, usingFallback, play, retry } = useDrumAudio(volume)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -48,6 +48,12 @@ export default function App() {
         </button>
       </div>
       <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {status !== 'error' && !running && (
+        <button type="button" className="sound-gate" onClick={resume} aria-label={t('sound.resume')}>
+          <span className="sound-gate__circle"><FaPlay aria-hidden="true" /></span>
+          <span className="sound-gate__label">{t('sound.resume')}</span>
+        </button>
+      )}
       <div className="rotate-overlay" role="status">
         <FaMobileScreenButton aria-hidden="true" />
         <p>{t('rotate.message')}</p>
