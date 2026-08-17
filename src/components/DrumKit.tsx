@@ -6,7 +6,7 @@ import { useI18n } from '../utils/i18n'
 
 const FLASH_DURATION_MS = 220
 const OPEN_VISUAL_DURATION_MS = 1200
-const KIT_X_OFFSET = -5
+const KIT_X_OFFSET = -30
 
 export interface DrumKitProps {
   onHit: (padId: DrumPadId, velocity: number, variant?: DrumHitVariant, edgeOffset?: number) => DrumVoiceHandle | null
@@ -31,6 +31,7 @@ interface ShellGeometry {
   ry: number
   depth?: number
   tilt?: number
+  towardViewer?: number
   chrome?: boolean
 }
 
@@ -45,11 +46,11 @@ function CymbalRidges({ cx, cy, rx, ry }: Pick<CymbalGeometry, 'cx' | 'cy' | 'rx
 type PartGeometry = CymbalGeometry | ShellGeometry
 
 const LAYOUT: Record<DrumPadId, PartGeometry> = {
-  crash: { kind: 'cymbal', cx: 110, cy: 108, rx: 134, ry: 88, tilt: -9, baseX: 96, baseY: 500 },
-  ride: { kind: 'cymbal', cx: 850, cy: 106, rx: 136, ry: 92, tilt: 8, baseX: 874, baseY: 500 },
-  hihat: { kind: 'cymbal', cx: 100, cy: 264, rx: 98, ry: 64, tilt: 0, baseX: 100, baseY: 500 },
-  tomHi: { kind: 'shell', cx: 375, cy: 194, rx: 102, ry: 78, tilt: -7 },
-  tomMid: { kind: 'shell', cx: 625, cy: 186, rx: 112, ry: 85, tilt: 7 },
+  crash: { kind: 'cymbal', cx: 175, cy: 66, rx: 134, ry: 88, tilt: -9, baseX: 145, baseY: 500 },
+  ride: { kind: 'cymbal', cx: 850, cy: 64, rx: 136, ry: 92, tilt: 8, baseX: 874, baseY: 500 },
+  hihat: { kind: 'cymbal', cx: 125, cy: 240, rx: 98, ry: 64, tilt: 0, baseX: 125, baseY: 500 },
+  tomHi: { kind: 'shell', cx: 375, cy: 178, rx: 102, ry: 78, tilt: -11, towardViewer: 1.06 },
+  tomMid: { kind: 'shell', cx: 625, cy: 170, rx: 112, ry: 85, tilt: 11, towardViewer: 1.06 },
   snare: { kind: 'shell', cx: 245, cy: 402, rx: 124, ry: 93, chrome: true },
   tomFloor: { kind: 'shell', cx: 775, cy: 382, rx: 142, ry: 108 },
   kick: { kind: 'shell', cx: 510, cy: 418, rx: 164, ry: 104 },
@@ -176,6 +177,7 @@ function KickPart({ geometry }: { geometry: ShellGeometry }) {
       {lugPositions(cx, cy, rx - 5, ry - 5).map((position) => (
         <circle key={`${position.x},${position.y}`} cx={position.x} cy={position.y} r={6.5} className="kit-lug" />
       ))}
+      <circle cx={cx + rx * 0.45} cy={cy + ry * 0.45} r="15" className="kick-port" />
     </g>
   )
 }
@@ -362,7 +364,6 @@ export default function DrumKit({ onHit }: DrumKitProps) {
             <circle cx={geometry.cx - geometry.rx - 30} cy={geometry.cy + 134} r={6} className="kit-stand__foot" />
             <circle cx={geometry.cx + geometry.rx + 30} cy={geometry.cy + 134} r={6} className="kit-stand__foot" />
             <KickPart geometry={geometry} />
-            <circle cx={geometry.cx + geometry.rx * 0.45} cy={geometry.cy + geometry.ry * 0.45} r="15" className="kick-port" />
           </>
         )}
         {geometry.kind === 'shell' && pad.id !== 'kick' && (
@@ -385,7 +386,7 @@ export default function DrumKit({ onHit }: DrumKitProps) {
                 <circle cx={geometry.cx + 4} cy={geometry.cy + geometry.ry} r={5} className="kit-stand__foot" />
               </g>
             )}
-            <g transform={`rotate(${geometry.tilt ?? 0} ${geometry.cx} ${geometry.cy})`}>
+            <g transform={`translate(${geometry.cx} ${geometry.cy}) rotate(${geometry.tilt ?? 0}) scale(1 ${geometry.towardViewer ?? 1}) translate(${-geometry.cx} ${-geometry.cy})`}>
               <ShellPart geometry={geometry} chrome={geometry.chrome === true} />
             </g>
           </>
@@ -462,9 +463,9 @@ export default function DrumKit({ onHit }: DrumKitProps) {
               triggerOpenHat()
             }}
           >
-            <circle cx={60} cy={266} r={28} />
-            <ellipse cx={60} cy={257} rx={12.5} ry={4} />
-            <ellipse cx={60} cy={275} rx={12.5} ry={4} />
+            <circle cx={70} cy={307} r={28} />
+            <ellipse cx={70} cy={298} rx={12.5} ry={4} />
+            <ellipse cx={70} cy={316} rx={12.5} ry={4} />
           </g>
         </g>
       </svg>
