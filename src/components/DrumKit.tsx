@@ -7,6 +7,7 @@ import { useI18n } from '../utils/i18n'
 const KEYBOARD_VELOCITY = 0.9
 const FLASH_DURATION_MS = 220
 const OPEN_VISUAL_DURATION_MS = 1200
+const KIT_X_OFFSET = -5
 
 export interface DrumKitProps {
   onHit: (padId: DrumPadId, velocity: number, variant?: DrumHitVariant, edgeOffset?: number) => DrumVoiceHandle | null
@@ -30,21 +31,31 @@ interface ShellGeometry {
   cy: number
   rx: number
   ry: number
+  depth?: number
+  tilt?: number
   chrome?: boolean
   badge: { x: number; y: number }
+}
+
+const CYMBAL_RIDGES = [0.86, 0.74, 0.62, 0.5, 0.38, 0.28]
+
+function CymbalRidges({ cx, cy, rx, ry }: Pick<CymbalGeometry, 'cx' | 'cy' | 'rx' | 'ry'>) {
+  return <>{CYMBAL_RIDGES.map((scale) => (
+    <ellipse key={scale} cx={cx} cy={cy} rx={rx * scale} ry={ry * scale} className="kit-cymbal-groove" />
+  ))}</>
 }
 
 type PartGeometry = CymbalGeometry | ShellGeometry
 
 const LAYOUT: Record<DrumPadId, PartGeometry> = {
-  crash: { kind: 'cymbal', cx: 240, cy: 118, rx: 118, ry: 90, tilt: -9, baseX: 196, baseY: 476, badge: { x: 168, y: 212 } },
-  ride: { kind: 'cymbal', cx: 760, cy: 116, rx: 126, ry: 96, tilt: 8, baseX: 802, baseY: 476, badge: { x: 872, y: 212 } },
-  hihat: { kind: 'cymbal', cx: 142, cy: 238, rx: 84, ry: 62, tilt: 0, baseX: 142, baseY: 476, badge: { x: 204, y: 304 } },
-  tomHi: { kind: 'shell', cx: 410, cy: 272, rx: 92, ry: 72, badge: { x: 410, y: 366 } },
-  tomMid: { kind: 'shell', cx: 632, cy: 278, rx: 102, ry: 80, badge: { x: 632, y: 378 } },
-  snare: { kind: 'shell', cx: 302, cy: 414, rx: 96, ry: 76, chrome: true, badge: { x: 302, y: 322 } },
-  tomFloor: { kind: 'shell', cx: 740, cy: 420, rx: 110, ry: 88, badge: { x: 872, y: 452 } },
-  kick: { kind: 'shell', cx: 514, cy: 452, rx: 150, ry: 122, badge: { x: 514, y: 452 } },
+  crash: { kind: 'cymbal', cx: 110, cy: 108, rx: 134, ry: 88, tilt: -9, baseX: 96, baseY: 500, badge: { x: 44, y: 202 } },
+  ride: { kind: 'cymbal', cx: 850, cy: 106, rx: 136, ry: 92, tilt: 8, baseX: 874, baseY: 500, badge: { x: 944, y: 202 } },
+  hihat: { kind: 'cymbal', cx: 100, cy: 264, rx: 98, ry: 64, tilt: 0, baseX: 100, baseY: 500, badge: { x: 182, y: 320 } },
+  tomHi: { kind: 'shell', cx: 375, cy: 194, rx: 102, ry: 78, tilt: -7, badge: { x: 375, y: 286 } },
+  tomMid: { kind: 'shell', cx: 625, cy: 186, rx: 112, ry: 85, tilt: 7, badge: { x: 625, y: 280 } },
+  snare: { kind: 'shell', cx: 245, cy: 402, rx: 124, ry: 93, chrome: true, badge: { x: 245, y: 292 } },
+  tomFloor: { kind: 'shell', cx: 775, cy: 382, rx: 142, ry: 108, badge: { x: 910, y: 428 } },
+  kick: { kind: 'shell', cx: 510, cy: 418, rx: 164, ry: 104, badge: { x: 510, y: 418 } },
 }
 
 /**
@@ -53,7 +64,7 @@ const LAYOUT: Record<DrumPadId, PartGeometry> = {
  * needed to match the container aspect, and the rug fills whatever is added,
  * so the drums always render at their maximum possible size.
  */
-const CONTENT_BOX = { x: 56, y: 20, width: 838, height: 492 }
+const CONTENT_BOX = { x: 28, y: 12, width: 904, height: 500 }
 
 const LUG_ANGLES = Array.from({ length: 8 }, (_, index) => ((22.5 + index * 45) * Math.PI) / 180)
 
@@ -116,16 +127,66 @@ function Stand({ fromX, fromY, toX, toY }: { fromX: number; fromY: number; toX: 
   )
 }
 
+function TomMount() {
+  const highTom = LAYOUT.tomHi as ShellGeometry
+  const midTom = LAYOUT.tomMid as ShellGeometry
+  const hubX = (highTom.cx + midTom.cx) / 2
+  const hubY = 320
+  return (
+    <g className="kit-tom-mount" aria-hidden="true">
+      <line x1={highTom.cx + highTom.rx * 0.34} y1={highTom.cy + highTom.ry * 0.55} x2={hubX - 28} y2={hubY} />
+      <line x1={midTom.cx - midTom.rx * 0.34} y1={midTom.cy + midTom.ry * 0.55} x2={hubX + 28} y2={hubY} />
+      <line x1={hubX} y1={hubY - 18} x2={hubX} y2={hubY + 46} />
+      <rect x={hubX - 20} y={hubY - 10} width={40} height={20} rx={6} className="kit-tom-mount__clamp" />
+      <circle cx={hubX} cy={hubY} r={5} className="kit-tom-mount__bolt" />
+    </g>
+  )
+}
+
 function ShellPart({ geometry, chrome }: { geometry: ShellGeometry; chrome: boolean }) {
   const { cx, cy, rx, ry } = geometry
+  const depth = geometry.depth ?? Math.round(ry * 0.82)
+  const shellBody = `M ${cx - rx + 7} ${cy + ry * 0.16} Q ${cx} ${cy + ry * 0.94} ${cx + rx - 7} ${cy + ry * 0.16} L ${cx + rx - 7} ${cy + ry * 0.16 + depth} Q ${cx} ${cy + ry * 1.32 + depth} ${cx - rx + 7} ${cy + ry * 0.16 + depth} Z`
   return (
     <g className="drum-part__anim">
-      <ellipse cx={cx} cy={cy + ry * 0.58} rx={rx * 1.02} ry={ry * 0.46} className="part-shadow" />
-      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={chrome ? 'url(#dk-chrome)' : 'url(#dk-shell)'} stroke="var(--shell-edge)" strokeWidth="5" />
-      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="none" stroke="url(#dk-chrome)" strokeWidth="7" />
+      <ellipse cx={cx} cy={cy + ry * 0.82 + depth} rx={rx * 1.04} ry={ry * 0.46} className="part-shadow" />
+      <path d={shellBody} fill={chrome ? 'url(#dk-chrome)' : 'url(#dk-shell-body)'} stroke="var(--shell-edge)" strokeWidth="4" className="kit-shell-body" />
+      <path d={`M ${cx - rx + 7} ${cy + ry * 0.16 + depth} Q ${cx} ${cy + ry * 1.32 + depth} ${cx + rx - 7} ${cy + ry * 0.16 + depth}`} className="kit-shell-bottom-rim" />
+      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="url(#dk-shell)" stroke="var(--shell-edge)" strokeWidth="5" />
+      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="none" stroke="url(#dk-chrome)" strokeWidth="9" />
       <ellipse cx={cx} cy={cy} rx={rx - 10} ry={ry - 9} fill="url(#dk-head)" stroke="var(--head-edge)" strokeWidth="2.5" />
+      <ellipse cx={cx} cy={cy} rx={(rx - 10) * 0.78} ry={(ry - 9) * 0.78} className="kit-head-ring" />
+      <path d={`M ${cx - rx * 0.56} ${cy - ry * 0.34} Q ${cx} ${cy - ry * 0.67} ${cx + rx * 0.56} ${cy - ry * 0.34}`} className="kit-head-gloss" />
       {lugPositions(cx, cy, rx - 4, ry - 4).map((position) => (
         <circle key={`${position.x},${position.y}`} cx={position.x} cy={position.y} r={5.5} className="kit-lug" />
+      ))}
+    </g>
+  )
+}
+
+function KickPart({ geometry }: { geometry: ShellGeometry }) {
+  const { cx, cy, rx, ry } = geometry
+  const shellOffset = 94
+  const rearY = cy - shellOffset
+  const rearLeftX = cx - rx * 0.84
+  const rearRightX = cx + rx * 0.84
+  const frontLeftX = cx - rx * 0.94
+  const frontRightX = cx + rx * 0.94
+  return (
+    <g className="drum-part__anim">
+      <ellipse cx={cx} cy={cy + ry * 0.78} rx={rx * 1.08} ry={ry * 0.48} className="part-shadow" />
+      <ellipse cx={cx} cy={rearY} rx={rx * 0.9} ry={ry * 0.78} fill="url(#dk-shell-body)" stroke="var(--shell-edge)" strokeWidth="5" className="kit-kick-shell" />
+      <path d={`M ${rearLeftX} ${rearY} L ${rearRightX} ${rearY} L ${frontRightX} ${cy + ry * 0.24} L ${frontLeftX} ${cy + ry * 0.24} Z`} fill="url(#dk-shell-body)" stroke="var(--shell-edge)" strokeWidth="4" />
+      <line x1={rearLeftX} y1={rearY} x2={frontLeftX} y2={cy + ry * 0.24} className="kit-kick-shell-rail" />
+      <line x1={rearRightX} y1={rearY} x2={frontRightX} y2={cy + ry * 0.24} className="kit-kick-shell-rail" />
+      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="url(#dk-shell)" stroke="var(--shell-edge)" strokeWidth="6" />
+      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="none" stroke="url(#dk-chrome)" strokeWidth="11" />
+      <ellipse cx={cx} cy={cy} rx={rx - 13} ry={ry - 12} fill="url(#dk-kick-head)" stroke="var(--head-edge)" strokeWidth="3" />
+      <path d={`M ${cx - rx * 0.78} ${cy - ry * 0.2} Q ${cx} ${cy - ry * 0.82} ${cx + rx * 0.78} ${cy - ry * 0.2} L ${cx + rx * 0.62} ${cy + ry * 0.04} Q ${cx} ${cy - ry * 0.42} ${cx - rx * 0.62} ${cy + ry * 0.04} Z`} className="kit-kick-head-shadow" />
+      <ellipse cx={cx} cy={cy} rx={(rx - 13) * 0.7} ry={(ry - 12) * 0.7} className="kit-head-ring" />
+      <path d={`M ${cx - rx * 0.54} ${cy - ry * 0.36} Q ${cx} ${cy - ry * 0.68} ${cx + rx * 0.54} ${cy - ry * 0.36}`} className="kit-head-gloss" />
+      {lugPositions(cx, cy, rx - 5, ry - 5).map((position) => (
+        <circle key={`${position.x},${position.y}`} cx={position.x} cy={position.y} r={6.5} className="kit-lug" />
       ))}
     </g>
   )
@@ -138,8 +199,7 @@ function CymbalPart({ geometry }: { geometry: CymbalGeometry }) {
       <g className="drum-part__anim">
         <ellipse cx={cx} cy={cy + ry * 0.62} rx={rx * 1.0} ry={ry * 0.42} className="part-shadow" />
         <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="url(#dk-cymbal)" stroke="var(--cymbal-deep)" strokeWidth="4" />
-        <ellipse cx={cx} cy={cy} rx={rx * 0.66} ry={ry * 0.66} className="kit-cymbal-groove" />
-        <ellipse cx={cx} cy={cy} rx={rx * 0.38} ry={ry * 0.38} className="kit-cymbal-groove" />
+        <CymbalRidges cx={cx} cy={cy} rx={rx} ry={ry} />
         <ellipse cx={cx} cy={cy} rx={rx * 0.2} ry={ry * 0.2} fill="url(#dk-bell)" stroke="var(--cymbal-deep)" strokeWidth="2" />
         <circle cx={cx} cy={cy} r={6} className="kit-stand-nut" />
       </g>
@@ -340,7 +400,7 @@ export default function DrumKit({ onHit }: DrumKitProps) {
             <g transform={`rotate(${geometry.tilt} ${geometry.cx} ${geometry.cy})`}>
               <g className="drum-part__anim">
                 <ellipse cx={geometry.cx} cy={geometry.cy} rx={geometry.rx} ry={geometry.ry} fill="url(#dk-cymbal)" stroke="var(--cymbal-deep)" strokeWidth="4" />
-                <ellipse cx={geometry.cx} cy={geometry.cy} rx={geometry.rx * 0.38} ry={geometry.ry * 0.38} className="kit-cymbal-groove" />
+                <CymbalRidges cx={geometry.cx} cy={geometry.cy} rx={geometry.rx} ry={geometry.ry} />
                 <ellipse cx={geometry.cx} cy={geometry.cy} rx={geometry.rx * 0.18} ry={geometry.ry * 0.18} fill="url(#dk-bell)" stroke="var(--cymbal-deep)" strokeWidth="2" />
                 <rect x={geometry.cx - 7} y={geometry.cy - geometry.ry - 16} width="14" height="18" rx="4" className="kit-stand" />
               </g>
@@ -354,7 +414,7 @@ export default function DrumKit({ onHit }: DrumKitProps) {
             <path d={`M ${geometry.cx + geometry.rx - 20} ${geometry.cy + 62} L ${geometry.cx + geometry.rx + 12} ${geometry.cy + 106} L ${geometry.cx + geometry.rx + 30} ${geometry.cy + 134}`} className="kick-spur" />
             <circle cx={geometry.cx - geometry.rx - 30} cy={geometry.cy + 134} r={6} className="kit-stand__foot" />
             <circle cx={geometry.cx + geometry.rx + 30} cy={geometry.cy + 134} r={6} className="kit-stand__foot" />
-            <ShellPart geometry={geometry} chrome={false} />
+            <KickPart geometry={geometry} />
             <circle cx={geometry.cx + geometry.rx * 0.45} cy={geometry.cy + geometry.ry * 0.45} r="15" className="kick-port" />
           </>
         )}
@@ -378,7 +438,9 @@ export default function DrumKit({ onHit }: DrumKitProps) {
                 <circle cx={geometry.cx + 4} cy={geometry.cy + geometry.ry} r={5} className="kit-stand__foot" />
               </g>
             )}
-            <ShellPart geometry={geometry} chrome={geometry.chrome === true} />
+            <g transform={`rotate(${geometry.tilt ?? 0} ${geometry.cx} ${geometry.cy})`}>
+              <ShellPart geometry={geometry} chrome={geometry.chrome === true} />
+            </g>
           </>
         )}
         <KeyBadge x={geometry.badge.x} y={geometry.badge.y} label={pad.keyboardKey.toUpperCase()} large={pad.id === 'kick'} />
@@ -393,6 +455,13 @@ export default function DrumKit({ onHit }: DrumKitProps) {
           <linearGradient id="dk-shell" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="var(--shell-light)" />
             <stop offset="1" stopColor="var(--shell-dark)" />
+          </linearGradient>
+          <linearGradient id="dk-shell-body" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="var(--shell-edge)" />
+            <stop offset="0.22" stopColor="var(--shell-dark)" />
+            <stop offset="0.5" stopColor="var(--shell-light)" />
+            <stop offset="0.78" stopColor="var(--shell-dark)" />
+            <stop offset="1" stopColor="var(--shell-edge)" />
           </linearGradient>
           <linearGradient id="dk-chrome" x1="0" y1="0" x2="0.6" y2="1">
             <stop offset="0" stopColor="var(--hoop-light)" />
@@ -409,6 +478,12 @@ export default function DrumKit({ onHit }: DrumKitProps) {
             <stop offset="0.78" stopColor="var(--head)" />
             <stop offset="1" stopColor="var(--head-edge)" />
           </radialGradient>
+          <linearGradient id="dk-kick-head" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#292e36" />
+            <stop offset="0.45" stopColor="#4e5158" />
+            <stop offset="0.78" stopColor="#726b6c" />
+            <stop offset="1" stopColor="#3b3b42" />
+          </linearGradient>
           <radialGradient id="dk-bell">
             <stop offset="0" stopColor="var(--cymbal-bright)" />
             <stop offset="1" stopColor="var(--cymbal-deep)" />
@@ -416,38 +491,41 @@ export default function DrumKit({ onHit }: DrumKitProps) {
         </defs>
         <rect x={scene.x} y={scene.y} width={scene.width} height={scene.height} className="kit-rug" />
         <rect x={scene.x + 18} y={scene.y + 16} width={scene.width - 36} height={scene.height - 32} rx="26" className="kit-rug-inner" />
-        <g className="stand-layer">
-          {CYMBAL_STAND_ORDER.map((padId) => {
-            const geometry = LAYOUT[padId]
-            return geometry.kind === 'cymbal'
-              ? <Stand key={padId} fromX={geometry.cx} fromY={geometry.cy} toX={geometry.baseX} toY={geometry.baseY} />
-              : null
+        <g transform={`translate(${KIT_X_OFFSET} 0)`}>
+          <g className="stand-layer">
+            {CYMBAL_STAND_ORDER.map((padId) => {
+              const geometry = LAYOUT[padId]
+              return geometry.kind === 'cymbal'
+                ? <Stand key={padId} fromX={geometry.cx} fromY={geometry.cy} toX={geometry.baseX} toY={geometry.baseY} />
+                : null
+            })}
+            <TomMount />
+          </g>
+          {PAINT_ORDER.map((padId) => {
+            const pad = DRUM_PADS.find((entry) => entry.id === padId)
+            return pad ? renderPart(pad) : null
           })}
-        </g>
-        {PAINT_ORDER.map((padId) => {
-          const pad = DRUM_PADS.find((entry) => entry.id === padId)
-          return pad ? renderPart(pad) : null
-        })}
-        <g
-          className="hihat-open-button"
-          role="button"
-          tabIndex={0}
-          aria-label={t('drum.hihatOpen')}
-          onPointerDown={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-            if (event.pointerType === 'mouse' && event.button !== 0) return
-            triggerOpenHat()
-          }}
-          onKeyDown={(event) => {
-            if (event.key !== 'Enter' && event.key !== ' ') return
-            event.preventDefault()
-            if (!event.repeat) triggerOpenHat()
-          }}
-        >
-          <circle cx={86} cy={196} r={28} />
-          <ellipse cx={86} cy={187} rx={12.5} ry={4} />
-          <ellipse cx={86} cy={205} rx={12.5} ry={4} />
+          <g
+            className="hihat-open-button"
+            role="button"
+            tabIndex={0}
+            aria-label={t('drum.hihatOpen')}
+            onPointerDown={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              if (event.pointerType === 'mouse' && event.button !== 0) return
+              triggerOpenHat()
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return
+              event.preventDefault()
+              if (!event.repeat) triggerOpenHat()
+            }}
+          >
+            <circle cx={60} cy={266} r={28} />
+            <ellipse cx={60} cy={257} rx={12.5} ry={4} />
+            <ellipse cx={60} cy={275} rx={12.5} ry={4} />
+          </g>
         </g>
       </svg>
     </div>
