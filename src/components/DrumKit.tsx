@@ -1,10 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ALT_HOLD_DELAY_MS, CYMBAL_STAND_ORDER, DRUM_PADS, HIHAT_OPEN_KEYBOARD_KEY, HIHAT_OPEN_VELOCITY, PAINT_ORDER, type DrumHitVariant, type DrumPad, type DrumPadId } from '../audio/drumKit'
+import { ALT_HOLD_DELAY_MS, CYMBAL_STAND_ORDER, DRUM_PADS, HIHAT_OPEN_VELOCITY, PAINT_ORDER, type DrumHitVariant, type DrumPad, type DrumPadId } from '../audio/drumKit'
 import type { DrumVoiceHandle } from '../audio/useDrumAudio'
 import { clamp, velocityFromPointerOffset } from '../audio/levels'
 import { useI18n } from '../utils/i18n'
 
-const KEYBOARD_VELOCITY = 0.9
 const FLASH_DURATION_MS = 220
 const OPEN_VISUAL_DURATION_MS = 1200
 const KIT_X_OFFSET = -5
@@ -22,7 +21,6 @@ interface CymbalGeometry {
   tilt: number
   baseX: number
   baseY: number
-  badge: { x: number; y: number }
 }
 
 interface ShellGeometry {
@@ -34,7 +32,6 @@ interface ShellGeometry {
   depth?: number
   tilt?: number
   chrome?: boolean
-  badge: { x: number; y: number }
 }
 
 const CYMBAL_RIDGES = [0.86, 0.74, 0.62, 0.5, 0.38, 0.28]
@@ -48,14 +45,14 @@ function CymbalRidges({ cx, cy, rx, ry }: Pick<CymbalGeometry, 'cx' | 'cy' | 'rx
 type PartGeometry = CymbalGeometry | ShellGeometry
 
 const LAYOUT: Record<DrumPadId, PartGeometry> = {
-  crash: { kind: 'cymbal', cx: 110, cy: 108, rx: 134, ry: 88, tilt: -9, baseX: 96, baseY: 500, badge: { x: 44, y: 202 } },
-  ride: { kind: 'cymbal', cx: 850, cy: 106, rx: 136, ry: 92, tilt: 8, baseX: 874, baseY: 500, badge: { x: 944, y: 202 } },
-  hihat: { kind: 'cymbal', cx: 100, cy: 264, rx: 98, ry: 64, tilt: 0, baseX: 100, baseY: 500, badge: { x: 182, y: 320 } },
-  tomHi: { kind: 'shell', cx: 375, cy: 194, rx: 102, ry: 78, tilt: -7, badge: { x: 375, y: 286 } },
-  tomMid: { kind: 'shell', cx: 625, cy: 186, rx: 112, ry: 85, tilt: 7, badge: { x: 625, y: 280 } },
-  snare: { kind: 'shell', cx: 245, cy: 402, rx: 124, ry: 93, chrome: true, badge: { x: 245, y: 292 } },
-  tomFloor: { kind: 'shell', cx: 775, cy: 382, rx: 142, ry: 108, badge: { x: 910, y: 428 } },
-  kick: { kind: 'shell', cx: 510, cy: 418, rx: 164, ry: 104, badge: { x: 510, y: 418 } },
+  crash: { kind: 'cymbal', cx: 110, cy: 108, rx: 134, ry: 88, tilt: -9, baseX: 96, baseY: 500 },
+  ride: { kind: 'cymbal', cx: 850, cy: 106, rx: 136, ry: 92, tilt: 8, baseX: 874, baseY: 500 },
+  hihat: { kind: 'cymbal', cx: 100, cy: 264, rx: 98, ry: 64, tilt: 0, baseX: 100, baseY: 500 },
+  tomHi: { kind: 'shell', cx: 375, cy: 194, rx: 102, ry: 78, tilt: -7 },
+  tomMid: { kind: 'shell', cx: 625, cy: 186, rx: 112, ry: 85, tilt: 7 },
+  snare: { kind: 'shell', cx: 245, cy: 402, rx: 124, ry: 93, chrome: true },
+  tomFloor: { kind: 'shell', cx: 775, cy: 382, rx: 142, ry: 108 },
+  kick: { kind: 'shell', cx: 510, cy: 418, rx: 164, ry: 104 },
 }
 
 /**
@@ -87,15 +84,6 @@ function pointerHit(event: React.PointerEvent, element: Element): PointerHit {
   const offsetY = (event.clientY - (rect.top + rect.height / 2)) / (rect.height / 2)
   const edge = clamp(Math.hypot(offsetX, offsetY), 0, 1)
   return { velocity: velocityFromPointerOffset(edge), edge }
-}
-
-function KeyBadge({ x, y, label, large = false }: { x: number; y: number; label: string; large?: boolean }) {
-  return (
-    <g className={`key-badge ${large ? 'key-badge--large' : ''}`} aria-hidden="true">
-      <circle cx={x} cy={y} r={large ? 30 : 17} />
-      <text x={x} y={y}>{label}</text>
-    </g>
-  )
 }
 
 function Tripod({ x, y }: { x: number; y: number }) {
@@ -241,7 +229,6 @@ export default function DrumKit({ onHit }: DrumKitProps) {
     return { x: CONTENT_BOX.x, y: CONTENT_BOX.y - (height - CONTENT_BOX.height), width: CONTENT_BOX.width, height }
   }, [containerBox])
   const heldPointers = useRef(new Map<number, DrumPadId>())
-  const heldKeys = useRef(new Set<string>())
   const altTimers = useRef(new Map<DrumPadId, ReturnType<typeof setTimeout>>())
   const hatVoice = useRef<DrumVoiceHandle | null>(null)
   const openVisualTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -335,38 +322,6 @@ export default function DrumKit({ onHit }: DrumKitProps) {
     }
   }, [releasePad])
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) return
-      const target = event.target as HTMLElement | null
-      if (target && ['SELECT', 'INPUT', 'TEXTAREA'].includes(target.tagName)) return
-      if (document.querySelector('[role="dialog"]')) return
-      const key = event.key.toLowerCase()
-      if (key === HIHAT_OPEN_KEYBOARD_KEY) {
-        event.preventDefault()
-        if (!event.repeat) triggerOpenHat()
-        return
-      }
-      const pad = DRUM_PADS.find((entry) => entry.keyboardKey === key)
-      if (!pad) return
-      event.preventDefault()
-      if (heldKeys.current.has(pad.id)) return
-      heldKeys.current.add(pad.id)
-      trigger(pad, { velocity: KEYBOARD_VELOCITY, edge: 0 })
-    }
-    const onKeyUp = (event: KeyboardEvent) => {
-      const pad = DRUM_PADS.find((entry) => entry.keyboardKey === event.key.toLowerCase())
-      if (!pad || !heldKeys.current.delete(pad.id)) return
-      releasePad(pad)
-    }
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup', onKeyUp)
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup', onKeyUp)
-    }
-  }, [releasePad, trigger, triggerOpenHat])
-
   const renderPart = (pad: DrumPad) => {
     const geometry = LAYOUT[pad.id]
     const isFlashing = flash[pad.id] === true
@@ -382,18 +337,10 @@ export default function DrumKit({ onHit }: DrumKitProps) {
         heldPointers.current.set(event.pointerId, pad.id)
         trigger(pad, pointerHit(event, event.currentTarget))
       },
-      onKeyDown: (event: React.KeyboardEvent<SVGGElement>) => {
-        if (event.key !== 'Enter' && event.key !== ' ') return
-        event.preventDefault()
-        if (!event.repeat) trigger(pad, { velocity: KEYBOARD_VELOCITY, edge: 0 })
-      },
-      onKeyUp: (event: React.KeyboardEvent<SVGGElement>) => {
-        if (event.key === 'Enter' || event.key === ' ') releasePad(pad)
-      },
     }
-    const label = t('drum.aria', { name: t(pad.labelKey), key: pad.keyboardKey.toUpperCase() })
+    const label = t(pad.labelKey)
     return (
-      <g key={pad.id} className={className} role="button" tabIndex={0} aria-label={label} {...handlers}>
+      <g key={pad.id} className={className} role="button" aria-label={label} {...handlers}>
         {pad.id === 'hihat' && geometry.kind === 'cymbal' && (
           <g className={`hihat-stack ${hatOpen ? 'hihat-stack--open' : ''}`}>
             <ellipse cx={geometry.cx} cy={geometry.cy + 10} rx={geometry.rx} ry={geometry.ry} fill="url(#dk-cymbal)" stroke="var(--cymbal-deep)" strokeWidth="4" opacity="0.9" />
@@ -443,7 +390,6 @@ export default function DrumKit({ onHit }: DrumKitProps) {
             </g>
           </>
         )}
-        <KeyBadge x={geometry.badge.x} y={geometry.badge.y} label={pad.keyboardKey.toUpperCase()} large={pad.id === 'kick'} />
       </g>
     )
   }
@@ -508,18 +454,12 @@ export default function DrumKit({ onHit }: DrumKitProps) {
           <g
             className="hihat-open-button"
             role="button"
-            tabIndex={0}
             aria-label={t('drum.hihatOpen')}
             onPointerDown={(event) => {
               event.preventDefault()
               event.stopPropagation()
               if (event.pointerType === 'mouse' && event.button !== 0) return
               triggerOpenHat()
-            }}
-            onKeyDown={(event) => {
-              if (event.key !== 'Enter' && event.key !== ' ') return
-              event.preventDefault()
-              if (!event.repeat) triggerOpenHat()
             }}
           >
             <circle cx={60} cy={266} r={28} />

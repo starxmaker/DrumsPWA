@@ -10,7 +10,6 @@ The project is live at [https://starxmaker.github.io/DrumsPWA/](https://starxmak
 - **Multi-touch polyphony** — strike several drums at once and they all sound
 - Tap the centre of a head for full volume, the edge for softer, darker rim hits
 - Press and hold the hi-hat for an open-wash voice
-- Keyboard shortcuts on desktop (A S D J K L U I)
 - Offline, installable PWA
 - English and Spanish interface
 - Responsive light and dark themes, master volume setting

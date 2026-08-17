@@ -8,9 +8,8 @@ describe('drum kit definition', () => {
     ])
   })
 
-  it('uses unique ids, keyboard keys, and samples', () => {
+  it('uses unique ids and samples', () => {
     expect(new Set(DRUM_PADS.map((pad) => pad.id)).size).toBe(DRUM_PADS.length)
-    expect(new Set(DRUM_PADS.map((pad) => pad.keyboardKey)).size).toBe(DRUM_PADS.length)
     const files = DRUM_PADS.flatMap((pad) => [pad.sample, pad.altSample]).filter(Boolean)
     expect(new Set(files).size).toBe(files.length)
   })
@@ -18,12 +17,6 @@ describe('drum kit definition', () => {
   it('maps every pad to an existing translation key', () => {
     for (const pad of DRUM_PADS) {
       expect(en[pad.labelKey]).toBeTruthy()
-    }
-  })
-
-  it('uses single lowercase letter keyboard keys', () => {
-    for (const pad of DRUM_PADS) {
-      expect(pad.keyboardKey).toMatch(/^[a-z]$/)
     }
   })
 

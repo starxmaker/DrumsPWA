@@ -8,7 +8,7 @@ import { ALT_HOLD_DELAY_MS, DRUM_PADS, HIHAT_OPEN_VELOCITY, PAINT_ORDER, type Dr
 function padName(id: DrumPadId): string {
   const pad = DRUM_PADS.find((entry) => entry.id === id)
   if (!pad) throw new Error(`Unknown pad: ${id}`)
-  return `${en[pad.labelKey]}, key ${pad.keyboardKey.toUpperCase()}`
+  return en[pad.labelKey]
 }
 
 function renderKit(onHit = vi.fn()) {
@@ -59,18 +59,14 @@ describe('DrumKit', () => {
     expect(onHit).toHaveBeenCalledWith('snare', 1, 'primary', 0)
   })
 
-  it('plays pads from their mapped keyboard keys', () => {
+  it('does not play pads from keyboard input', () => {
     const onHit = renderKit()
-    fireEvent.keyDown(window, { key: 'l' })
-    expect(onHit).toHaveBeenCalledWith('tomFloor', 0.9, 'primary', 0)
-    fireEvent.keyDown(window, { key: 'z' })
-    expect(onHit).toHaveBeenCalledTimes(1)
-  })
-
-  it('plays a focused pad with Enter', () => {
-    const onHit = renderKit()
+    for (const key of ['a', 's', 'd', 'f', 'j', 'k', 'l', 'u', 'i', 'Enter', ' ']) {
+      fireEvent.keyDown(window, { key })
+    }
     fireEvent.keyDown(pad('crash'), { key: 'Enter' })
-    expect(onHit).toHaveBeenCalledWith('crash', 0.9, 'primary', 0)
+    fireEvent.keyDown(pad('crash'), { key: ' ' })
+    expect(onHit).not.toHaveBeenCalled()
   })
 
   it('switches the hi-hat to its open voice when held', () => {
@@ -105,14 +101,6 @@ describe('DrumKit', () => {
     const onHit = renderKit()
     fireEvent.pointerDown(screen.getByRole('button', { name: en['drum.hihatOpen'] }), { pointerId: 9, pointerType: 'touch', button: 0 })
     expect(onHit).toHaveBeenCalledWith('hihat', HIHAT_OPEN_VELOCITY, 'alt')
-  })
-
-  it('plays the open hi-hat from its keyboard key', () => {
-    const onHit = renderKit()
-    fireEvent.keyDown(window, { key: 'f' })
-    expect(onHit).toHaveBeenCalledWith('hihat', HIHAT_OPEN_VELOCITY, 'alt')
-    fireEvent.keyDown(window, { key: 'f', repeat: true })
-    expect(onHit).toHaveBeenCalledTimes(1)
   })
 
   it('chokes the ringing closed voice when opening via the button', () => {

@@ -9,28 +9,26 @@ export interface DrumPad {
   sample: string
   /** Alternative voice for pads that support a second sound (hi-hat open). */
   altSample?: string
-  keyboardKey: string
   baseGain: number
   /** Pads played with sticks respond to edge position; the kick is pedal-played. */
   edgeTone?: boolean
 }
 
 export const DRUM_PADS: DrumPad[] = [
-  { id: 'kick', labelKey: 'drum.kick', sample: 'kick.flac', keyboardKey: 'a', baseGain: 1, edgeTone: false },
-  { id: 'snare', labelKey: 'drum.snare', sample: 'snare.flac', keyboardKey: 's', baseGain: 0.9 },
-  { id: 'hihat', labelKey: 'drum.hihat', sample: 'hihat-closed.flac', altSample: 'hihat-open.flac', keyboardKey: 'd', baseGain: 0.8 },
-  { id: 'tomHi', labelKey: 'drum.tomHi', sample: 'tom-hi.flac', keyboardKey: 'j', baseGain: 0.9 },
-  { id: 'tomMid', labelKey: 'drum.tomMid', sample: 'tom-mid.flac', keyboardKey: 'k', baseGain: 0.9 },
-  { id: 'tomFloor', labelKey: 'drum.tomFloor', sample: 'tom-floor.flac', keyboardKey: 'l', baseGain: 1 },
-  { id: 'crash', labelKey: 'drum.crash', sample: 'crash.flac', keyboardKey: 'u', baseGain: 0.85 },
-  { id: 'ride', labelKey: 'drum.ride', sample: 'ride.flac', keyboardKey: 'i', baseGain: 0.85 },
+  { id: 'kick', labelKey: 'drum.kick', sample: 'kick.flac', baseGain: 1, edgeTone: false },
+  { id: 'snare', labelKey: 'drum.snare', sample: 'snare.flac', baseGain: 0.9 },
+  { id: 'hihat', labelKey: 'drum.hihat', sample: 'hihat-closed.flac', altSample: 'hihat-open.flac', baseGain: 0.8 },
+  { id: 'tomHi', labelKey: 'drum.tomHi', sample: 'tom-hi.flac', baseGain: 0.9 },
+  { id: 'tomMid', labelKey: 'drum.tomMid', sample: 'tom-mid.flac', baseGain: 0.9 },
+  { id: 'tomFloor', labelKey: 'drum.tomFloor', sample: 'tom-floor.flac', baseGain: 1 },
+  { id: 'crash', labelKey: 'drum.crash', sample: 'crash.flac', baseGain: 0.85 },
+  { id: 'ride', labelKey: 'drum.ride', sample: 'ride.flac', baseGain: 0.85 },
 ]
 
 /** How long a pad must be held before the alternate voice (open hi-hat) triggers. */
 export const ALT_HOLD_DELAY_MS = 280
 
 /** Dedicated open-hi-hat button next to the hi-hat. */
-export const HIHAT_OPEN_KEYBOARD_KEY = 'f'
 export const HIHAT_OPEN_VELOCITY = 0.9
 
 /**
